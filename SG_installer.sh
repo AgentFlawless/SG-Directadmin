@@ -18,7 +18,7 @@ abort() {
 }
 
 SOURCE_GUARDIAN_FILE_NAME=SourceGuardian-loaders.linux-x86_64-14.0.2.zip
-SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main/files/$SOURCE_GUARDIAN_FILE_NAME
+SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main/$SOURCE_GUARDIAN_FILE_NAME
 
 TMPDIR=$(mktemp -d)
 SG_PATH=/usr/local/lib/sourcegurdian
