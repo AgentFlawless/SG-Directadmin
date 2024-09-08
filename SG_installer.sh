@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 ########################################################################
-## Scripts: SourceGuardian installer                                  ##
-## Code By: m.saleh                                                   ##
-## Repository: https://github.com/AgentFlawless/extension-php         ##
+## Script: SourceGuardian Installer                                    ##
+## Code By: m.saleh                                                    ##
+## Repository: https://github.com/AgentFlawless/extension-php          ##
 ########################################################################
 
 clear
@@ -12,7 +12,8 @@ echo -e "\E[0m\E[01;31m\033[5m##################################################
 
 # Show an error and exit
 abort() {
-  echo -e "\E[0m\E[01;31m\033[5mError: $1\E[0m"
+  echo -e "\E[0m\E[01;31m\033[5mPlease check log and run scripts with -x.\E[0m"
+  echo -e "\E[0m\E[01;31m\033[5m$1\E[0m"
   exit 1
 }
 
@@ -20,54 +21,44 @@ SOURCE_GUARDIAN_FILE_NAME=SourceGuardian-loaders.linux-x86_64-14.0.2.zip
 SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main/$SOURCE_GUARDIAN_FILE_NAME
 
 TMPDIR=$(mktemp -d)
-SG_PATH=/usr/local/lib/sourceguardian
+SG_PATH=/usr/local/lib/sourcegurdian
 
-# Clean and prepare the directory
+# Create SourceGuardian path and clear any existing files
 mkdir -p $SG_PATH
 rm -f $SG_PATH/*
 
-# Download SourceGuardian file
-echo "Downloading SourceGuardian file..."
-if ! wget --tries=5 --retry-connrefused --timeout=180 --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL; then
-  abort "Failed to download SourceGuardian from $SOURCE_GUARDIAN_FILE_URL"
-fi
-
-# Extract SourceGuardian files
-echo "Extracting SourceGuardian files..."
-if ! unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $SG_PATH; then
-  abort "Failed to extract SourceGuardian files."
-fi
-
-# Clean up temporary directory
+# Download and extract all SourceGuardian files into $SG_PATH
+echo "Downloading and extracting all SourceGuardian files to $SG_PATH"
+wget --tries=0 --retry-connrefused --timeout=180 -x --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL >/dev/null 2>&1
+unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $SG_PATH >/dev/null 2>&1
 rm -rf $TMPDIR
 
-# Loop through PHP versions and configure
+# Verify if the SourceGuardian files are properly extracted
+if [[ ! -f $SG_PATH/ixed.7.4.lin ]]; then
+  abort "SourceGuardian files were not properly extracted. Please check the zip file and path."
+fi
+
 for PHP_VERSION in $(grep -e php[1234]_release /usr/local/directadmin/custombuild/options.conf | cut -d "=" -f "2" | grep -v no)
 do
-  PHP_VERSION_NO_DOT=$(echo "$PHP_VERSION" | tr -d '.')
+  # Convert dot version to no dot version (e.g., 7.4 => 74)
+  PHP_VERSION_NO_DOT=${PHP_VERSION//./}
 
   EXTENSION_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/extensions.ini
   PHP_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.ini
   DIRECTADMIN_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/10-directadmin.ini
   WEBAPPS_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/50-webapps.ini
 
-  # Create ini files if not already present
   touch $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI
 
-  # Remove existing ixed entries
+  # Remove any existing SourceGuardian extension references
   sed -i -r '/ixed/d' $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI >/dev/null 2>&1
 
-  SG_LOADER_FILE="$SG_PATH/ixed.$PHP_VERSION.lin"
-  if [[ ! -f "$SG_LOADER_FILE" ]]; then
-    abort "SourceGuardian loader not found for PHP version $PHP_VERSION. Expected file: $SG_LOADER_FILE"
-  fi
-
-  # Add SourceGuardian extension if not already added
+  # Check and add the extension if not already added
   if ! grep -q "ixed.$PHP_VERSION.lin" $EXTENSION_INI; then
-    echo "Adding extension=$SG_LOADER_FILE to $EXTENSION_INI"
-    echo "extension=$SG_LOADER_FILE" >> $EXTENSION_INI
+    echo "Adding extension=$SG_PATH/ixed.$PHP_VERSION.lin to $EXTENSION_INI"
+    echo "extension=$SG_PATH/ixed.$PHP_VERSION.lin" >> $EXTENSION_INI
   fi
 done
 
-echo "Installation complete. Restart the handler and webserver."
+echo "Done, restarting handler and web server"
 echo -e "\E[0m\E[01;31m\033[5m###############################################################################\E[0m"
