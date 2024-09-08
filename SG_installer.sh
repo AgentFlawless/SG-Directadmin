@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 ########################################################################
-## Script: SourceGuardian Installer                                    ##
-## Code By: m.saleh                                                    ##
-## Repository: https://github.com/AgentFlawless/extension-php          ##
+## Scipts: sourcegurdian installer                               ##
+## Code By: m.saleh                                              ##
+## Repository: https://github.com/AgentFlawless/extension-php    ##
 ########################################################################
 
 clear
 
-echo "Welcome to SourceGuardian Installer"
+echo "Welcome to SourceGurdian Installer"
 echo -e "\E[0m\E[01;31m\033[5m###############################################################################\E[0m"
 
 # Show an error and exit
@@ -23,25 +23,26 @@ SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main
 TMPDIR=$(mktemp -d)
 SG_PATH=/usr/local/lib/sourcegurdian
 
-# Create SourceGuardian path and clear any existing files
 mkdir -p $SG_PATH
 rm -f $SG_PATH/*
 
-# Download and extract all SourceGuardian files into $SG_PATH
-echo "Downloading and extracting all SourceGuardian files to $SG_PATH"
+# Download and extract SourceGuardian files to $SG_PATH
+echo "Downloading and extracting SourceGuardian files to $SG_PATH"
 wget --tries=0 --retry-connrefused --timeout=180 -x --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL >/dev/null 2>&1
-unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $SG_PATH >/dev/null 2>&1
-rm -rf $TMPDIR
+unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $TMPDIR/sourceguardian >/dev/null 2>&1
 
-# Verify if the SourceGuardian files are properly extracted
-if [[ ! -f $SG_PATH/ixed.7.4.lin ]]; then
-  abort "SourceGuardian files were not properly extracted. Please check the zip file and path."
-fi
+# Copy all files to $SG_PATH
+echo "Copying files to $SG_PATH"
+cp -r $TMPDIR/sourceguardian/* $SG_PATH/
+
+# Clean up temporary directory
+rm -rf $TMPDIR
 
 for PHP_VERSION in $(grep -e php[1234]_release /usr/local/directadmin/custombuild/options.conf | cut -d "=" -f "2" | grep -v no)
 do
   # Convert dot version to no dot version (e.g., 7.4 => 74)
-  PHP_VERSION_NO_DOT=${PHP_VERSION//./}
+  A=${PHP_VERSION//\./}
+  PHP_VERSION_NO_DOT="${A[@]}"
 
   EXTENSION_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/extensions.ini
   PHP_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.ini
@@ -50,15 +51,16 @@ do
 
   touch $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI
 
-  # Remove any existing SourceGuardian extension references
+  # Remove previous entries from ini files
   sed -i -r '/ixed/d' $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI >/dev/null 2>&1
 
-  # Check and add the extension if not already added
-  if ! grep -q "ixed.$PHP_VERSION.lin" $EXTENSION_INI; then
-    echo "Adding extension=$SG_PATH/ixed.$PHP_VERSION.lin to $EXTENSION_INI"
-    echo "extension=$SG_PATH/ixed.$PHP_VERSION.lin" >> $EXTENSION_INI
+  # Add SourceGuardian extension if not present
+  if [[ ! "$(grep -P "ixed.\d+\.\d+.lin" $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI >/dev/null 2>&1)" ]]; then
+    INI=$EXTENSION_INI
+    echo "Adding extension=$SG_PATH/ixed.$PHP_VERSION.lin to $INI"
+    echo "extension=$SG_PATH/ixed.$PHP_VERSION.lin" >> $INI
   fi
 done
 
-echo "Done, restarting handler and web server"
+echo "Done. Restarting handler and webserver."
 echo -e "\E[0m\E[01;31m\033[5m###############################################################################\E[0m"
