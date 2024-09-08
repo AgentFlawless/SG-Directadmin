@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 ########################################################################
-## Scipts: sourcegurdian installer                               ##
-## Code By: m.saleh                                              ##
-## Repository: https://github.com/AgentFlawless/extension-php    ##
+## Scripts: SourceGuardian installer                                  ##
+## Code By: m.saleh                                                   ##
+## Repository: https://github.com/AgentFlawless/extension-php         ##
 ########################################################################
 
 clear
 
-echo "Welcome to SourceGurdian Installer"
+echo "Welcome to SourceGuardian Installer"
 echo -e "\E[0m\E[01;31m\033[5m###############################################################################\E[0m"
 
 # Show an error and exit
@@ -21,41 +21,45 @@ SOURCE_GUARDIAN_FILE_NAME=SourceGuardian-loaders.linux-x86_64-14.0.2.zip
 SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main/$SOURCE_GUARDIAN_FILE_NAME
 
 TMPDIR=$(mktemp -d)
-SG_PATH=/usr/local/lib/sourcegurdian
+SG_PATH=/usr/local/lib/sourceguardian
 
 mkdir -p $SG_PATH
 rm -f $SG_PATH/*
 
-#download sourcegurdian file and extraxt
-echo "Download and extraxt SourceGurdian files to $SG_PATH"
+# Download and extract SourceGuardian files
+echo "Downloading and extracting SourceGuardian files to $SG_PATH"
 wget --tries=0 --retry-connrefused --timeout=180 -x --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL >/dev/null 2>&1
 unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $SG_PATH >/dev/null 2>&1
 rm -rf $TMPDIR
 
-for PHP_VERTION in $(grep -e php[1234]_release /usr/local/directadmin/custombuild/options.conf | cut -d "=" -f "2" | grep -v no)
+for PHP_VERSION in $(grep -e php[1234]_release /usr/local/directadmin/custombuild/options.conf | cut -d "=" -f "2" | grep -v no)
 do
-  #dot vertion to no dot version (7.4 => 74)
-  #PHP_VERTION=$1
-  A=${PHP_VERTION//\./}
-  PHP_VERTION_NO_DOT="${A[@]}"
+  # Convert version from dot to no dot format (e.g., 7.4 -> 74)
+  PHP_VERSION_NO_DOT=$(echo "$PHP_VERSION" | tr -d '.')
 
-  EXTENSION_INI=/usr/local/php$PHP_VERTION_NO_DOT/lib/php.conf.d/extensions.ini
-  PHP_INI=/usr/local/php$PHP_VERTION_NO_DOT/lib/php.ini
-  DIRECTADMIN_INI=/usr/local/php$PHP_VERTION_NO_DOT/lib/php.conf.d/10-directadmin.ini
-  WEBAPPS_INI=/usr/local/php$PHP_VERTION_NO_DOT/lib/php.conf.d/50-webapps.ini
+  EXTENSION_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/extensions.ini
+  PHP_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.ini
+  DIRECTADMIN_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/10-directadmin.ini
+  WEBAPPS_INI=/usr/local/php$PHP_VERSION_NO_DOT/lib/php.conf.d/50-webapps.ini
 
+  # Create ini files if they don't exist
   touch $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI
 
-  #remove extension from ini files
+  # Remove existing ixed entries from ini files
   sed -i -r '/ixed/d' $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI >/dev/null 2>&1
 
-  #check and add extension in ini files
-  if [[ ! "$(grep -P "ixed.\d+\.\d+.lin"  $EXTENSION_INI $PHP_INI $DIRECTADMIN_INI $WEBAPPS_INI >/dev/null 2>&1)" ]]; then
-    INI=$EXTENSION_INI
-    echo "Add extension=$SG_PATH/ixed.$PHP_VERTION.lin to $INI"
-    echo "extension=$SG_PATH/ixed.$PHP_VERTION.lin" >> $INI
+  # Check if the loader file exists for this PHP version
+  SG_LOADER_FILE="$SG_PATH/ixed.$PHP_VERSION.lin"
+  if [[ ! -f "$SG_LOADER_FILE" ]]; then
+    abort "SourceGuardian loader not found for PHP version $PHP_VERSION. Expected file: $SG_LOADER_FILE"
+  fi
+
+  # Add the extension to ini files
+  if ! grep -q "ixed.$PHP_VERSION.lin" $EXTENSION_INI; then
+    echo "Adding extension=$SG_LOADER_FILE to $EXTENSION_INI"
+    echo "extension=$SG_LOADER_FILE" >> $EXTENSION_INI
   fi
 done
 
-echo "done, restart handler and webserver"
+echo "Installation complete. Restarting handler and webserver."
 echo -e "\E[0m\E[01;31m\033[5m###############################################################################\E[0m"
