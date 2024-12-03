@@ -18,7 +18,7 @@ abort() {
 }
 
 SOURCE_GUARDIAN_FILE_NAME=SourceGuardian-loaders.linux-x86_64-14.0.2.zip
-SOURCE_GUARDIAN_FILE_URL=https://github.com/AgentFlawless/extension-php/raw/main/$SOURCE_GUARDIAN_FILE_NAME
+SOURCE_GUARDIAN_FILE_URL=https://www.sourceguardian.com/loaders/download/$SOURCE_GUARDIAN_FILE_NAME
 
 TMPDIR=$(mktemp -d)
 SG_PATH=/usr/local/lib/sourcegurdian
@@ -27,13 +27,16 @@ mkdir -p $SG_PATH
 rm -f $SG_PATH/*
 
 # Download and extract SourceGuardian files to $SG_PATH
-echo "Downloading and extracting SourceGuardian files to $SG_PATH"
-wget --tries=0 --retry-connrefused --timeout=180 -x --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL >/dev/null 2>&1
-unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $TMPDIR/sourceguardian >/dev/null 2>&1
+echo "Downloading SourceGuardian loaders from $SOURCE_GUARDIAN_FILE_URL"
+wget --tries=0 --retry-connrefused --timeout=180 -x --no-cache --no-check-certificate -O $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME $SOURCE_GUARDIAN_FILE_URL || abort "Failed to download SourceGuardian loaders."
+
+echo "Extracting SourceGuardian files to $TMPDIR/sourceguardian"
+unzip -o $TMPDIR/$SOURCE_GUARDIAN_FILE_NAME -d $TMPDIR/sourceguardian >/dev/null 2>&1 || abort "Failed to extract SourceGuardian loaders."
+
 
 # Copy all files to $SG_PATH
 echo "Copying files to $SG_PATH"
-cp -r $TMPDIR/sourceguardian/* $SG_PATH/
+cp -r $TMPDIR/sourceguardian/* $SG_PATH/ || abort "Failed to copy files to $SG_PATH."
 
 # Clean up temporary directory
 rm -rf $TMPDIR
