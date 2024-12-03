@@ -14,5 +14,5 @@ Easy install SourceGurdian in Server
 for use just copy and paste this line
 ```bash
 
-bash <(curl -sSkL https://raw.githubusercontent.com/AgentFlawless/extension-php/main/SG_installer.sh)
+bash <(curl -sSkL https://raw.githubusercontent.com/AgentFlawless/SG-Directadmin/main/SG_installer.sh)
 ```
